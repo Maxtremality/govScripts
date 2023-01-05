@@ -2,7 +2,6 @@ import json
 import asyncio
 from datetime import datetime, timedelta
 import time
-from os import system
 
 from ets_data import token_get
 from ets_data import company_get
@@ -957,8 +956,8 @@ async def main():
     roadway_column = 'okrug_id, okrug_name, company_id, company_name, name, procent, traveled_normalized, road_area, missions, num_exec, structure_name'
     company_column = 'company_name, procent, company_id, okrug_id, okrug_name'
 
-    # date_start = ('2022-11-23' + "T09:00:00")
-    # date_end = ('2022-11-24' + "T08:59:00")
+    date_start = ('2022-12-11' + "T09:00:00")
+    date_end = ('2022-12-12' + "T08:59:00")
     users = await data_get(ets_user_columns, ets_user_table, '', settings.DB_USERS, settings.DB_ACCESS)
 
     while True:
@@ -966,12 +965,12 @@ async def main():
             objects = []
             company = []
 
-            date = datetime.now() - timedelta(hours=9)
-            date_start = (str(date.date()) + "T09:00:00")
-            date_end = (str(date.date() + timedelta(days=1)) + "T08:59:00")
+            # date = datetime.now() - timedelta(hours=9)
+            # date_start = (str(date.date()) + "T09:00:00")
+            # date_end = (str(date.date() + timedelta(days=1)) + "T08:59:00")
 
-            login = user[1]         # settings.CHECKOUT_ACCESS['SAO']['login']
-            password = user[2]      # settings.CHECKOUT_ACCESS['SAO']['password']
+            login = user[1]
+            password = user[2]
             roadway_table_pt = user[1] + '_monitor_roadway'
             company_table_pt = user[1] + '_monitor_company'
             okrug_table_pt = user[1] + '_monitor_okrug'
@@ -1026,6 +1025,7 @@ async def main():
             await data_post(company, company_table_pt, company_column, settings.DB_DJANGO, settings.DB_ACCESS)
 
             print(login, datetime.now())
+
 
     end = time.time()
     print(time.strftime("%H:%M:%S", time.gmtime(end - start)))

@@ -27,43 +27,48 @@ async def waybills_get(token, date_start, date_end):
 async def time_get(token, waybill):
     data = {}
 
+    f = 1
     for driver in waybill:
+        try:
+            distance = 0.0
+            travel_time = 0.0
+            parkings_time_base = 0.0
+            parkings_time_city = 0.0
+            waybill_count = 0
+            waybill_duty = 0
+            driver_name = waybill[driver]['driver_name']
 
-        distance = 0.0
-        travel_time = 0.0
-        parkings_time_base = 0.0
-        parkings_time_city = 0.0
-        waybill_count = 0
-        waybill_duty = 0
-        driver_name = waybill[driver]['driver_name']
+            for waybill_data in waybill[driver]['waybill_data']:
 
-        for waybill_data in waybill[driver]['waybill_data']:
+                if waybill_data['track_length_km'] == 0 or waybill_data['track_length_km'] == None:
+                    waybill_duty += 1
 
-            if waybill_data['track_length_km'] == 0 or waybill_data['track_length_km'] == None:
-                waybill_duty += 1
+                params = "?version=4&car_id=" + str(waybill_data['car_id']) + "&from_dt=" + str(int(datetime.fromisoformat(waybill_data['activating_date']).timestamp())) + "&to_dt=" + str(int(datetime.fromisoformat(waybill_data['closing_date']).timestamp()))
+                psd_track = await psd_track_get(token, params)
+                okrug_name = waybill_data['okrug_name']
+                company_name = waybill_data['company_name']
+                waybill_count += 1
+                try:
+                    distance += psd_track['distance'] / 1000
+                    travel_time += psd_track['travel_time']
+                    for parking in psd_track['parkings']:
+                        for base in settings.BASE_COORDS:
+                            if base[0] - 100 < parking['end_point']['coords_msk'][0] < base[0] + 100 and base[1] - 100 < parking['end_point']['coords_msk'][1] < base[1] + 100:
+                                parkings_time_base += parking['sec']
+                                break
+                        else:
+                            parkings_time_city += parking['sec']
+                except TypeError:
+                    distance += 0.0
+                    travel_time += 0.0
+                    parkings_time_base += 0.0
+                    parkings_time_city += 0.0
 
-            params = "?version=4&car_id=" + str(waybill_data['car_id']) + "&from_dt=" + str(int(datetime.fromisoformat(waybill_data['activating_date']).timestamp())) + "&to_dt=" + str(int(datetime.fromisoformat(waybill_data['closing_date']).timestamp()))
-            psd_track = await psd_track_get(token, params)
-            okrug_name = waybill_data['okrug_name']
-            company_name = waybill_data['company_name']
-            waybill_count += 1
-            try:
-                distance += psd_track['distance'] / 1000
-                travel_time += psd_track['travel_time']
-                for parking in psd_track['parkings']:
-                    for base in settings.BASE_COORDS:
-                        if base[0] - 100 < parking['end_point']['coords_msk'][0] < base[0] + 100 and base[1] - 100 < parking['end_point']['coords_msk'][1] < base[1] + 100:
-                            parkings_time_base += parking['sec']
-                            break
-                    else:
-                        parkings_time_city += parking['sec']
-            except TypeError:
-                distance += 0.0
-                travel_time += 0.0
-                parkings_time_base += 0.0
-                parkings_time_city += 0.0
-
-        data[driver] = {"okrug_name": okrug_name, "company_name": company_name, "driver_name": driver_name, "distance": distance, "travel_time": travel_time, 'parkings_time_base': parkings_time_base, 'parkings_time_city': parkings_time_city, "waybill_count": waybill_count, "waybill_duty": waybill_duty}
+            data[driver] = {"okrug_name": okrug_name, "company_name": company_name, "driver_name": driver_name, "distance": distance, "travel_time": travel_time, 'parkings_time_base': parkings_time_base, 'parkings_time_city': parkings_time_city, "waybill_count": waybill_count, "waybill_duty": waybill_duty}
+            print(f, data[driver])
+            f += 1
+        except:
+            continue
 
     return data
 

@@ -13,7 +13,7 @@ from db import data_truncate
 async def ts_ets(token):
     cars = await car_actual_get(token, '')
     time_php = await data_get('from_dt, to_dt', 'car_travel_time_php', '', settings.DB_USERS, settings.DB_ACCESS)
-    if time_php[0] == None:
+    if time_php[0] is None:
         print("Нет данных в БД")
         exit(0)
     from_dt = time_php[0][0]
@@ -21,8 +21,9 @@ async def ts_ets(token):
     last_time = await data_get('from_dt, to_dt', 'car_travel_time', '', settings.DB_USERS, settings.DB_ACCESS)
 
     result = []
-    if last_time[0] == None:
-        last_time[0] = [datetime(1970, 2, 1, 0, 0), datetime(1970, 2, 1, 0, 0)]
+    if not last_time:
+        last_time = []
+        last_time.append([datetime(1970, 2, 1, 0, 0), datetime(1970, 2, 1, 0, 0)])
     if int(round(last_time[0][0].timestamp())) != from_dt or int(round(last_time[0][1].timestamp())) != to_dt:
         print("Даты разные. Запись...")
         await data_truncate('car_travel_time', settings.DB_USERS, settings.DB_ACCESS)

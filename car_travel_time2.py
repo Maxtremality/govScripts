@@ -30,26 +30,16 @@ async def get_data(token, x, from_dt, to_dt):
 
 async def ts_ets(token):
     cars = await car_actual_get(token, '')
-    time_php = await data_get('from_dt, to_dt', 'api_cartraveltimeform', '', settings.DB_API, 'public', settings.DB_ACCESS)
+    time_php = await data_get('from_dt, to_dt', 'api_cartraveltimeform2', '', settings.DB_API, 'public', settings.DB_ACCESS)
     if time_php[-1] is None:
         print("Нет данных в БД")
         exit(0)
     from_dt = round(time_php[-1][0].timestamp())
     to_dt = round(time_php[-1][1].timestamp())
-    last_time = await data_get('from_dt, to_dt', 'car_travel_time', '', settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
-
-    if not last_time:
-        last_time = []
-        last_time.append([datetime(1970, 2, 1, 0, 0), datetime(1970, 2, 1, 0, 0)])
-    if int(round(last_time[0][0].timestamp())) != from_dt or int(round(last_time[0][1].timestamp())) != to_dt:
-        print("Даты разные. Запись...")
-        await data_truncate('car_travel_time', settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
-        for x in cars['result']['rows']:
-            async with asyncio.TaskGroup() as tg:
-                tg.create_task(get_data(token, x, from_dt, to_dt))
-    else:
-        print("Даты совпадают")
-        pass
+    await data_truncate('car_travel_time2', settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
+    for x in cars['result']['rows']:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(get_data(token, x, from_dt, to_dt))
 
 
 async def main():
@@ -57,7 +47,7 @@ async def main():
 
     login = settings.TRAVEL_TIME_ACCESS['avdVAO']['login']
     password = settings.TRAVEL_TIME_ACCESS['avdVAO']['password']
-    car_time_table = 'car_travel_time'
+    car_time_table = 'car_travel_time2'
     car_time_column = 'gov_number, distance, travel_time, from_dt, to_dt'
 
     token = await token_get(login, password)
@@ -65,8 +55,7 @@ async def main():
     if len(result) > 0:
         await data_post(result, car_time_table, car_time_column, settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
 
-    end = time.time()
-    print(time.strftime("%H:%M:%S", time.gmtime(end-start)))
+    print('Время выполнения:', time.strftime("%H:%M:%S", time.gmtime(time.time() - start)))
 
 if __name__ == "__main__":
     asyncio.run(main())

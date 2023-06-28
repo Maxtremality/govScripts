@@ -15,17 +15,17 @@ from db import data_delete
 
 
 async def remove_file(obj: str):
-    if os.path.isfile(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx') is True:
-        os.remove(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
+    if os.path.isfile(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx') is True:
+        os.remove(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
 
 
 async def rename_file(obj: str):
-    if os.path.isfile(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_отчет.xlsx') is True:
-        os.rename(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_отчет.xlsx', os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
+    if os.path.isfile(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_отчет.xlsx') is True:
+        os.rename(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_отчет.xlsx', os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
 
 
 async def remove_rows(obj: str):
-    wb = load_workbook(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
+    wb = load_workbook(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
     ws = wb.active
     for merge in list(ws.merged_cells):
         ws.unmerge_cells(range_string=str(merge))
@@ -37,7 +37,7 @@ async def remove_rows(obj: str):
 
 
 async def null_rows(obj: str):
-    wb = load_workbook(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
+    wb = load_workbook(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
     ws = wb.active
     for row in range(1, ws.max_row+1):
         ws.cell(row=row, column=8).value = 'cat0'
@@ -62,7 +62,9 @@ async def get_file(obj: str, date: str):
 
     while do:
         if i > 3:
-            os.execl(sys.executable, sys.executable, * sys.argv)
+            driver.close()
+            driver.quit()
+            exit(0)
         if obj == 'ПЧ':
             try:
                 print(datetime.now().strftime('%d-%m-%Y %H:%M:%S'), '|', obj, 'Попытка #' + str(i))
@@ -76,9 +78,9 @@ async def get_file(obj: str, date: str):
                 do = False
                 print(datetime.now().strftime('%d-%m-%Y %H:%M:%S'), '|', obj, 'файл создан')
             except:
+                i += 1
                 print('Ошибка:\n', traceback.format_exc())
                 do = True
-                i += 1
                 timeout += 10
                 sleep += 10
                 continue
@@ -96,9 +98,9 @@ async def get_file(obj: str, date: str):
                 do = False
                 print(datetime.now().strftime('%d-%m-%Y %H:%M:%S'), '|', obj, 'файл создан')
             except:
+                i += 1
                 print('Ошибка:\n', traceback.format_exc())
                 do = True
-                i += 1
                 timeout += 10
                 sleep += 10
                 continue
@@ -117,16 +119,16 @@ async def get_file(obj: str, date: str):
                 do = False
                 print(datetime.now().strftime('%d-%m-%Y %H:%M:%S'), '|', obj, 'файл создан')
             except:
+                i += 1
                 print('Ошибка:\n', traceback.format_exc())
                 do = True
-                i += 1
                 timeout += 10
                 sleep += 10
                 continue
 
 
 async def data_to_list(obj: str):
-    wb = load_workbook(os.getcwd() + '\Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
+    wb = load_workbook(os.getcwd() + '/Отчет Посещение объектов уборочной техникой по заказчику учредителю_' + obj + '.xlsx')
     ws = wb.active
     data = list(ws.iter_rows(values_only=True))
 

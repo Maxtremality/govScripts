@@ -52,7 +52,6 @@ async def technical_operations_calc(orders):
     roadway_treatment_SAIM = {}     # Обработка проезжей части твердым ПГМ
     footway_treatment_CAIM = {}     # Обработка тротуаров комбинированным ПГМ
 
-
     for order_data in orders['result']:
         for technical_operations in order_data['technical_operations']:
             if technical_operations['id'] == 216 and technical_operations['municipal_facility_id'] == 1:        # roadway_wash - Мойка проезжей части

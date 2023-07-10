@@ -18,7 +18,7 @@ data = []
 
 
 async def db_datetime():
-    time_php = await data_get('from_dt, to_dt', 'api_cartraveltimeform', '', settings.DB_API, settings.DB_ACCESS)
+    time_php = await data_get('from_dt, to_dt', 'api_cartraveltimeform', '', settings.DB_API, 'public', settings.DB_ACCESS)
     if time_php[-1] is None:
         print("Нет данных в БД")
         exit(0)
@@ -90,16 +90,18 @@ async def track_check(gov_number, roads, track_data):
 
 
 async def get_track_data(session, token, car, period):
-    url = "https://psd.mos.ru/tracks-caching/tracks?version=4&car_id=9374&from_dt=1686690000&to_dt=1686737760&sensors=1"
+    url = f'https://psd.mos.ru/tracks-caching/tracks?version=4&car_id={car["asuods_id"]}&from_dt={period["from_dt"]}&to_dt={period["to_dt"]}&sensors=1'
     headers = {'Authorization': token}
     try:
         async with session.get(url, headers=headers, timeout=600) as resp:
             track = await resp.json()
-            print(track)
-            return {car['gov_number']: track['track']}
-
-    except TimeoutError as err:
-        print(f'Таймаут {url}')
+            if len(track['track']) < 10:
+                print(f'Нет трека {car["gov_number"]}')
+            else:
+                return {car['gov_number']: track}
+    except:
+        print(f'Отказ сервера {car["gov_number"]}')
+        return await get_track_data(session, token, car, period)
 
 
 async def main():
@@ -112,18 +114,20 @@ async def main():
     roads = await roads_get(token)
     roads_converted = await polygon_convert(roads)
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(trust_env=True) as session:
         tasks = []
         for car in cars['result']['rows']:
-            tasks.append(asyncio.ensure_future(get_track_data(session, token, car, period)))
+            if car['gps_code'] is not None:
+                tasks.append(asyncio.ensure_future(get_track_data(session, token, car, period)))
         td = await asyncio.gather(*tasks)
 
     print('Треки собраны за:', time.strftime("%H:%M:%S", time.gmtime(time.time() - start)))
 
     tracks_data = {}
     for obj in td:
-        for gov_number in obj:
-            tracks_data[gov_number] = obj[gov_number]
+        if obj is not None:
+            for gov_number in obj:
+                tracks_data[gov_number] = obj[gov_number]
 
     for gov_number in tracks_data:
         async with asyncio.TaskGroup() as tg:

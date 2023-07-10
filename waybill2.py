@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import time
+import random
 from datetime import datetime
 from dateutil.relativedelta import *
 from concurrent.futures import ThreadPoolExecutor
@@ -16,7 +17,7 @@ import settings
 data = {}
 
 
-def data_processing(username, waybills, cars, average_consumption_data):
+def data_processing(username, waybills, cars, average_consumption_data, track_data):
     result = []
     for x in waybills['result']:
         for i in cars['result']['rows']:
@@ -137,7 +138,9 @@ def data_processing(username, waybills, cars, average_consumption_data):
                              car['type_name'],
                              car['special_model_name'],
                              car['full_model_name'],
-                             "ГЛОНАСС исправен" if x['is_bnso_broken'] is False else ("ГЛОНАСС неисправен" if x['is_bnso_broken'] is True else "ГЛОНАСС не установлен")))
+                             "ГЛОНАСС исправен" if x['is_bnso_broken'] is False else ("ГЛОНАСС неисправен" if x['is_bnso_broken'] is True else "ГЛОНАСС не установлен"),
+                             track_data[x['id']]['travel_time'] if x['id'] in track_data else 0,
+                             track_data[x['id']]['time_of_parking'] if x['id'] in track_data else 0))
                 break
 
     print(f'{username} обработка данных завершена')
@@ -174,12 +177,30 @@ async def get_waybills_data(session, username, token, date):
         print(f'Таймаут {username}')
 
 
+async def get_track_data(session, token, car, period):
+    url = f'https://psd.mos.ru/tracks-caching/tracks?version=4&car_id={car["car_id"]}&from_dt={period["from_dt"]}&to_dt={period["to_dt"]}&sensors=1'
+    headers = {'Authorization': token}
+    time.sleep(random.randint(1, 60))
+    try:
+        async with session.get(url, headers=headers, timeout=3000) as resp:
+            track = await resp.json()
+            if len(track['track']) < 3:
+                print(f'Нет трека {car["okrug_name"]} {car["company_name"]} {car["gov_number"]} {car["number"]}')
+                return {car['id']: {'travel_time': 0, 'time_of_parking': 0}}
+            else:
+                return {car['id']: {'travel_time': track['travel_time'], 'time_of_parking': track['time_of_parking']}}
+    except TimeoutError:
+        print(f'Отказ сервера {car["okrug_name"]} {car["company_name"]} {car["gov_number"]} {car["number"]}')
+        return await get_track_data(session, token, car, period)
+
+
 async def main():
     start = time.time()
 
     waybills = {}
     cars = {}
     tokens = {}
+    track_data = {}
     
     waybill_columns = 'okrug_name, company_name, status_text, number, activating_date, closing_date, driver_name, \
                       gov_number, fact_departure_date, fact_arrival_date, closed_by_employee_name, odometr_start, \
@@ -193,9 +214,10 @@ async def main():
                       sensor_consumption, sensor_refill, refill_diff, refill_diff_status, refill_diff_percent, \
                       diff_fact_tax, diff_fact_tax_status, sensor_leak, \
                       structure_name, comment, sensors, gps_code, \
-                      normal_average_consumption, sensor_average_consumption, difference_consumption, status_average_consumption, type_name, special_model_name, full_model_name, glonass_status'
+                      normal_average_consumption, sensor_average_consumption, difference_consumption, status_average_consumption, ' \
+                      'type_name, special_model_name, full_model_name, glonass_status, travel_time, time_of_parking'
 
-    date = datetime.now() - relativedelta(months=3)
+    date = datetime.now() - relativedelta(days=3)
     users = await data_get('*', 'ets_users', '', settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
     average_consumption_data = await data_get('*', 'average_consumption', '', settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
 
@@ -218,9 +240,23 @@ async def main():
     for dictionary in cars_data:
         cars.update(dictionary)
 
+    async with aiohttp.ClientSession(trust_env=True) as session:
+        tasks_track = []
+        for username in waybills:
+            for waybill in waybills[username]['result']:
+                period = {
+                    'from_dt': int(datetime.fromisoformat(waybill['activating_date']).timestamp()),
+                    'to_dt': int(datetime.fromisoformat(waybill['closing_date']).timestamp()),
+                }
+                tasks_track.append(asyncio.ensure_future(get_track_data(session, tokens[username], waybill, period)))
+        td = await asyncio.gather(*tasks_track)
+
+    for dictionary in td:
+        track_data.update(dictionary)
+
     with ThreadPoolExecutor() as executor:
         loop = asyncio.get_running_loop()
-        tasks_dp = [loop.run_in_executor(executor, partial(data_processing, username, waybills[username], cars[username], average_consumption_data)) for username in waybills]
+        tasks_dp = [loop.run_in_executor(executor, partial(data_processing, username, waybills[username], cars[username], average_consumption_data, track_data)) for username in waybills]
         await asyncio.gather(*tasks_dp)
 
     tasks_data = []

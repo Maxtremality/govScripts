@@ -63,12 +63,12 @@ async def main():
     users = await data_get(ets_user_columns, ets_user_table, '', settings.DB_SCRIPTS, schema, settings.DB_ACCESS)
     await data_truncate('api_etscaractual', settings.DB_API, 'public', settings.DB_ACCESS)
     await data_truncate(car_actual_table_users, settings.DB_SCRIPTS, schema, settings.DB_ACCESS)
-    for user in users:
-        username = user[1]
-        password = user[2]
-        token = await token_get(username, password)
-        if token is not None:
-            await cars_data_get(token)
+    # for user in users:
+    #     username = user[1]
+    #     password = user[2]
+    token = await token_get('Ermilov_D', 'Vaososao1!')
+    if token is not None:
+        await cars_data_get(token)
 
     end = time.time()
     print(time.strftime("%H:%M:%S", time.gmtime(end - start)))

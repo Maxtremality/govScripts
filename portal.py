@@ -96,8 +96,11 @@ async def get_entry_er():
 async def get_entry_cafap(auth_data, processing_status, status):
     data = []
     url = 'https://cafap.mos.ru/api/issue/getByFilter?page=1&processingStatus=' + processing_status + '&sort=deadline,asc'
-    headers = {'cookie': auth_data['cookie'],
-               'x-xsrf-token': auth_data['x-xsrf-token']}
+    headers = {
+        'cookie': auth_data['cookie'],
+        'x-xsrf-token': auth_data['x-xsrf-token'],
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    }
     req_get_page = requests.get(url, headers=headers)
     if json.loads(req_get_page.text)['paging']['totalPages'] > 1:
         for page in range(json.loads(req_get_page.text)['paging']['totalPages']):

@@ -20,7 +20,10 @@ tokens = {}
 async def car_action(username, token):
     data_car = []
     url = 'https://ets.mos.ru/services/car_actual'
-    headers = {'Authorization': token}
+    headers = {
+        'Authorization': token,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    }
     car = requests.get(url, headers=headers)
     data_full = json.loads(car.text)
     data_result = data_full['result']['rows']
@@ -36,7 +39,10 @@ async def car_action(username, token):
 
 async def get_waybill_data(username, token, session, asuods_id, level_sensors_num, gps_code, closing_date):
     url = 'https://ets.mos.ru/services/waybill?limit=1&sort_by=number:desc&filter={"car_id__in":["' + str(asuods_id) + '"],"status__in":["closed"],"closing_date__eq":"' + str(closing_date) + '"}'
-    headers = {'Authorization': token}
+    headers = {
+        'Authorization': token,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    }
     try:
         async with session.get(url, headers=headers, timeout=600) as resp:
             wb = await resp.json()

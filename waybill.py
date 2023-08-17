@@ -181,29 +181,30 @@ async def get_waybills_data(session, username, token, date):
         
         
 async def get_estp_data(session, waybill):
-    if waybill['company_name'] == 'АвД ВАО':
-        url = f'https://estp.dgkh.msk.ru/index.php?r=fuel/fuel-static-new&search={ waybill["gov_number"] }&org=0&filter%5Buser%5D=&filter%5Bmax_count%5D=100&filter%5Bdate_to%5D={ waybill["fact_arrival_date"] }&filter%5Bdate_from%5D={ waybill["fact_departure_date"] }'
-        headers_estp = {
-            'Cookie': '_identity=399fd0229ea093a8612b572bfa4018f84215c5947855b801200f629725f02a64a%3A2%3A%7Bi%3A0%3Bs%3A9%3A%22_identity%22%3Bi%3A1%3Bs%3A48%3A%22%5B815%2C%22PfYWziVdX5aondZIFligsbNd_8m5Ju3H%22%2C2592000%5D%22%3B%7D; PHPSESSID=8ve0sv3409sha9d39f1mflc635; _csrf=c39ce217332155de14d7a1343f5d6096cf21ed576c75c6489874df1ec3d717dca%3A2%3A%7Bi%3A0%3Bs%3A5%3A%22_csrf%22%3Bi%3A1%3Bs%3A32%3A%22aMFKDkyOq1jyGd_K_z4B0hEAAj6Sqqg6%22%3B%7D',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
-        }
-        async with session.get(url, headers=headers_estp, timeout=600) as response:
-            resp = await response.text()
-            data_full = json.loads(resp)
-            if data_full['result']:
-                data_result = data_full['result'][0]
-                fuel_up = data_result['fuel_up_l_val']
-                if fuel_up == '':
-                    fuel_estp = 0
-                else:
-                    parts = [int(val) for val in fuel_up.split(";")]
-                    fuel_estp = sum(parts)
-            else:
-                fuel_estp = 0
-
-        return {waybill['id']: fuel_estp}
-    else:
-        return {waybill['id']: 0}
+    return {waybill['id']: 0}
+    # if waybill['company_name'] == 'АвД ВАО':
+    #     url = f'https://estp.dgkh.msk.ru/index.php?r=fuel/fuel-static-new&search={ waybill["gov_number"] }&org=0&filter%5Buser%5D=&filter%5Bmax_count%5D=100&filter%5Bdate_to%5D={ waybill["fact_arrival_date"] }&filter%5Bdate_from%5D={ waybill["fact_departure_date"] }'
+    #     headers_estp = {
+    #         'Cookie': '_identity=399fd0229ea093a8612b572bfa4018f84215c5947855b801200f629725f02a64a%3A2%3A%7Bi%3A0%3Bs%3A9%3A%22_identity%22%3Bi%3A1%3Bs%3A48%3A%22%5B815%2C%22PfYWziVdX5aondZIFligsbNd_8m5Ju3H%22%2C2592000%5D%22%3B%7D; PHPSESSID=8ve0sv3409sha9d39f1mflc635; _csrf=c39ce217332155de14d7a1343f5d6096cf21ed576c75c6489874df1ec3d717dca%3A2%3A%7Bi%3A0%3Bs%3A5%3A%22_csrf%22%3Bi%3A1%3Bs%3A32%3A%22aMFKDkyOq1jyGd_K_z4B0hEAAj6Sqqg6%22%3B%7D',
+    #         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    #     }
+    #     async with session.get(url, headers=headers_estp, timeout=600) as response:
+    #         resp = await response.text()
+    #         data_full = json.loads(resp)
+    #         if data_full['result']:
+    #             data_result = data_full['result'][0]
+    #             fuel_up = data_result['fuel_up_l_val']
+    #             if fuel_up == '':
+    #                 fuel_estp = 0
+    #             else:
+    #                 parts = [int(val) for val in fuel_up.split(";")]
+    #                 fuel_estp = sum(parts)
+    #         else:
+    #             fuel_estp = 0
+    #
+    #     return {waybill['id']: fuel_estp}
+    # else:
+    #     return {waybill['id']: 0}
 
 
 async def main():
@@ -259,14 +260,14 @@ async def main():
     for dictionary in cars_data:
         cars.update(dictionary)
 
-    async with aiohttp.ClientSession() as session:
-        estp_data_tasks = []
-        for okrug in waybills:
-            for waybill in waybills[okrug]['result']:
-                estp_data_tasks.append(asyncio.ensure_future(get_estp_data(session, waybill)))
+    # async with aiohttp.ClientSession() as session:
+    estp_data_tasks = []
+    for okrug in waybills:
+        for waybill in waybills[okrug]['result']:
+            estp_data_tasks.append(asyncio.ensure_future(get_estp_data('', waybill)))
 
-        estp_data = await asyncio.gather(*estp_data_tasks)
-        print(f'Данные ЕСТП загружены')
+    estp_data = await asyncio.gather(*estp_data_tasks)
+    print(f'Данные ЕСТП загружены')
 
     for dictionary in estp_data:
         estp.update(dictionary)

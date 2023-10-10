@@ -32,12 +32,12 @@ async def car_action(username, token):
             continue
         else:
             date1 = datetime.strptime(str(x['waybill_closing_date']), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d")
-            data_car.append((x['asuods_id'], x['gov_number'], date1, x['okrug_name'], x['company_name'], x['level_sensors_num'], x['gps_code']))
+            data_car.append((x['asuods_id'], x['gov_number'], date1, x['okrug_name'], x['company_name'], x['level_sensors_num'], x['gps_code'], x['condition_text']))
 
     data_cars[username] = data_car
 
 
-async def get_waybill_data(username, token, session, asuods_id, level_sensors_num, gps_code, closing_date):
+async def get_waybill_data(username, token, session, asuods_id, level_sensors_num, gps_code, closing_date, condition_text):
     url = 'https://ets.mos.ru/services/waybill?limit=1&sort_by=number:desc&filter={"car_id__in":["' + str(asuods_id) + '"],"status__in":["closed"],"closing_date__eq":"' + str(closing_date) + '"}'
     headers = {
         'Authorization': token,
@@ -50,6 +50,7 @@ async def get_waybill_data(username, token, session, asuods_id, level_sensors_nu
                 waybill = wb['result'][0]
                 waybill['level_sensors_num'] = level_sensors_num
                 waybill['gps_code'] = gps_code
+                waybill['condition_text'] = condition_text
                 return waybill
             else:
                 print(f'Нет данных: {username, wb, url}')
@@ -61,7 +62,7 @@ async def main():
 
     start = time.time()
 
-    table_column = 'date_upload, okrug_name, company_name, gov_number, fact_fuel_end, sensor_finish_value, difference, status, date, level_sensors_num, gps_code, status_diff'
+    table_column = 'date_upload, okrug_name, company_name, gov_number, fact_fuel_end, sensor_finish_value, difference, status, date, level_sensors_num, gps_code, status_diff, condition_text'
     users = await data_get('*', 'ets_users', '', settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
     for user in users:
         username = user[1]
@@ -73,7 +74,7 @@ async def main():
         tasks = []
         for username in data_cars:
             for car in data_cars[username]:
-                tasks.append(asyncio.ensure_future(get_waybill_data(username, tokens[username], session, car[0], car[5], car[6], car[2])))
+                tasks.append(asyncio.ensure_future(get_waybill_data(username, tokens[username], session, car[0], car[5], car[6], car[2], car[7])))
         waybills_data = await asyncio.gather(*tasks)
         for x in waybills_data:
             if x:
@@ -91,11 +92,12 @@ async def main():
                              x['closing_date'],
                              x['level_sensors_num'],
                              'Нет БНСО' if x['gps_code'] is None else x['gps_code'],
-                             "Остаток" if result_fuel > 0 else "Норма"))
+                             "Остаток" if result_fuel > 0 else "Норма",
+                             x['condition_text']))
 
     params = 'where extract(day from (current_timestamp::timestamp without time zone - date_upload::timestamp without time zone)) > 7 OR extract(day from (current_timestamp::timestamp without time zone - date_upload::timestamp without time zone)) = 0'
-    await data_delete('deficit_fuel', params, settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
-    await data_post(data, 'deficit_fuel', table_column, settings.DB_SCRIPTS, 'scripts', settings.DB_ACCESS)
+    await data_delete('api_etsdeficitfuel', params, settings.DB_API, 'public', settings.DB_ACCESS)
+    await data_post(data, 'api_etsdeficitfuel', table_column, settings.DB_API, 'public', settings.DB_ACCESS)
 
     print(time.strftime("%H:%M:%S", time.gmtime(time.time() - start)))
 

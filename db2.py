@@ -1,4 +1,8 @@
 import aiopg
+import asyncio
+import psycopg2
+import psycopg2.extras
+from psycopg2 import pool
 
 ID_ACCESS = 6      # Строка с данными входа в бд из файла settings
 
@@ -84,3 +88,4 @@ async def data_delete(table_name: str, parameters: str, db: str, schema: str, db
     cursor = await connection.cursor()
     await cursor.execute(f'DELETE FROM {table_name} {parameters}')
     await connection.close()
+
